@@ -30,6 +30,7 @@ ScrLine db 320 dup (0)
 ErrorMsg db 'Error', 13, 10,'$'
 ;-------------------
 ;-------images------
+secret db 'secret_settings.bmp', 0
 libraryS db 's1.bmp',0
 libraryB db 'bg1.bmp',0
 libraryG db 'sg1.bmp',0 
@@ -1265,11 +1266,11 @@ push cx
     ;----------Reset Graphics-------- 
     push [bp + 8]
     call printBMP
-    ; push 8  ; input: width, height, color, place 
-    ; push 8
-    ; push 7
-    ; push 381
-    ; call  drawBoard
+    push 8  ; input: width, height, color, place 
+    push 8
+    push 7
+    push 381
+    call  drawBoard
     ;--------------------------------
 
     ;----------Reset Data--------     
@@ -1492,6 +1493,8 @@ push bx
             je reset_maze
             cmp al, 's'
             je solve_maze
+            cmp al, 'S'
+            je secret_settings
             cmp al, 27
             je end_run 
         jmp input
@@ -1520,6 +1523,11 @@ push bx
             push 0 ; cell to start solving 
             call solution
         jmp optionLoop
+
+        secret_settings:
+            ;push
+            ;call secretSettings
+        jmp optionLoop
     ;-------------------------------
 end_run:
 
@@ -1540,27 +1548,230 @@ push ax
 push cx
 push si
     
-    mov bx, [bp + 4]
-    mov si, [bp + 6]
-    mov ax, [bx]
-    mov [si], ax
-    mov cx, 9
-
+    mov bx, [bp + 4] ; offset
+    mov si, [bp + 6] ; offset
+    ; Update first offset
+    mov [si], offset libraryS
+    ; nine pictures
+    mov ax, si
+    ; this is the end of the list
+    add ax, 9*2 
     offset_loop:
-    cmp bx, 9
-    
-    inc bx 
-
-    loop offset_loop
+    ; if there is null it is the end string
+        cmp [bx], 0
+        jne notEndString
+            ; the next byte is going to be the start of the next string
+            inc bx 
+            ; save the string offset and update si to point to the next cell
+            mov [si], bx 
+            add si, 2
+        notEndString:
+        inc bx 
+    cmp ax, si
+    jne offset_loop
 
 pop si
 pop cx
 pop ax 
 pop bx 
 pop bp 
-ret
+ret 4
 endp fileOffsets
+
+; Use: give the user the option of choosing the end and the start of the maze
+; Input: offset maze_start(+6), offset maze_end(+4)
+; Output: None
+proc secretSettings
+push bp
+mov bp, sp
+push bx
+push ax
+
+    secretLoop:
+
+    inputSecret:
+        ; Wait for key press
+        mov ah,0
+        int 16h
+        ;---------------
+            cmp al, 's'
+            je start_point
+            cmp al, 'e'
+            je end_point
+            cmp al, 27
+            je end_setting
+
+        jmp inputSecret
+        
+        start_point:
+            mov bx, [bp + 6] ; offset maze_start
+        jmp visualizeInput
+
+
+        end_point:
+            mov bx, [bp + 4] ; offset maze_end
+        jmp visualizeInput
+
+        visualizeInput:
+            push bx ; the offset of the varible to change 
+            call chooseCell
+            ; after the player choose his start\end point
+        jmp secretLoop
+
+    end_setting:
+
+
+pop ax
+pop bx
+pop bp 
+ret 4
+endp secretSettings
+
+; Use: print the player choosen cell of a end\start point
+; Input: offset of point to choose
+; Output: None
+proc chooseCell
+push bp
+mov bp, sp 
+; Graphical change of a var
+; if enter then end
+visaul_movement:
+
+    stepInput:
+        ; Wait for key press
+        mov ah,0
+        int 16h
+        ;---------------
+            cmp al, 'w'
+            je up
+            cmp al, 's'
+            je down
+            cmp al, 'a'
+            je left
+            cmp al, 'd'
+            je right
+            cmp al, 'enter' ; TODO change enter to assci for enter
+            je pressEnter
+        jmp stepInput
+
+            up:
+            ;TODO create a function that check: if touch_edges return the same var
+            ; if not - return the update var, and print visualize movement
+            push 20
+            call updateMovement 
+            pop [step]
+            jmp visaul_movement
+
+            down:
+            push -20
+            call updateMovement 
+            pop [step]
+            jmp visaul_movement
+
+
+            left:
+            push -1
+            call updateMovement 
+            pop [step]
+            jmp visaul_movement
+            
+            right:
+            push 1
+            call updateMovement 
+            pop [step]
+            jmp visaul_movement
+
+
+
+    
+jmp visaul_movement
+
+pop bp 
+ret 
+endp chooseCell
+
+; Use: check if the user touch the edges |1 - he touched |0 - he didn't touch|
+; Input: the next move of the user(0-399)(+4) 
+; Output: 1 - touched
+;         0 - didn't touched
+; BUG debug this code 
+proc touch_edges
+push bp 
+mov bp, sp 
+push ax
+push bx 
+push cx 
+	;------------------------
+	mov ax, [bp + 4]	; first list of positions value 
+	mov cl, 20  
+	;------------------------
+	; Up
+	cmp ax, 0
+	jl touch 
+	; Down
+	cmp ax, 399 
+	ja touch 
+	; Left
+	div cl
+	cmp ah, 0
+	je touch 
+	;Right
+	cmp ah, 19
+	je touch 
+
+    ;return 0 - didn't touch
+    mov [bp + 4], 0
+	jmp not_touch
+	touch:
+	; return 1 - did touch
+    mov [bp + 4], 1
+	not_touch:
+
+pop cx
+pop bx
+pop ax 
+pop bp
+ret 4
+endp touch_edges
+; Use: update movement -  check if touch_edges return the same var
+;            if not - return the update var, and print visualize movement
+
+; Input: the choosen movement(20/-20/1/-1)(+4)
+; Output: the updated movement
+proc updateMovement
+push bp
+mov bp, sp 
+; TODO finish this function
+push current_place + movement
+call touch_edges
+pop ax ; 1 - invalid ,0 - valid
+cmp ax, 1 
+je invalidMove
+
+    ; TODO print the movement 
+    ;draw block
+    push palce
+    call indexToPlace
+    pop place in screen
+
+    push 8
+    push 8
+    push color 
+    push place in screen
+    call drawCell
+    return current_place + movement
+
+jmp validMove
+invalidMove:
+    return current_place 
+validMove:
+
+pop bp 
+ret
+endp updateMovement
+
 ;________________________________________________________________________________________________________________________________
+
 
 
 ;                                    ,ggg, ,ggg,_,ggg,                                  
@@ -1587,6 +1798,10 @@ int 10h
 ;--------------
 
 ; Main:
+
+push offset libraryS
+push offset offset_list
+call fileOffsets
 
 
 
@@ -1625,7 +1840,7 @@ jmp startMenu
 
  
 startMenu:
-push [bx]   ; print start bg 
+push [offset_list]
 call printBMP
 
 
