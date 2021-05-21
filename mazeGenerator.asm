@@ -1,25 +1,25 @@
 ; ------------------------------------------------------------------------------------------------------------                                                                                                                                                            
-;                                                                                                                              I8                           
-;                                                                                                                              I8                           
-;                                                                                                                           88888888                        
-;                                                                                                                              I8                           
-;   ,ggg,,ggg,,ggg,     ,gggg,gg     ,gggg,   ,ggg,         ,gggg,gg   ,ggg,    ,ggg,,ggg,    ,ggg,    ,gggggg,    ,gggg,gg    I8      ,ggggg,     ,gggggg, 
-;  ,8" "8P" "8P" "8,   dP"  "Y8I    d8"  Yb  i8" "8i       dP"  "Y8I  i8" "8i  ,8" "8P" "8,  i8" "8i   dP""""8I   dP"  "Y8I    I8     dP"  "Y8ggg  dP""""8I 
-;  I8   8I   8I   8I  i8'    ,8I   dP    dP  I8, ,8I      i8'    ,8I  I8, ,8I  I8   8I   8I  I8, ,8I  ,8'    8I  i8'    ,8I   ,I8,   i8'    ,8I   ,8'    8I 
-; ,dP   8I   8I   Yb,,d8,   ,d8b,,dP  ,adP'  `YbadP'     ,d8,   ,d8I  `YbadP' ,dP   8I   Yb, `YbadP' ,dP     Y8,,d8,   ,d8b, ,d88b, ,d8,   ,d8'  ,dP     Y8,
-; 8P'   8I   8I   `Y8P"Y8888P"`Y88"   ""Y8d8888P"Y888    P"Y8888P"888888P"Y8888P'   8I   `Y8888P"Y8888P      `Y8P"Y8888P"`Y888P""Y88P"Y8888P"    8P      `Y8
-;                                      ,d8I'                    ,d8I'                                                                                       
-;                                    ,dP'8I                   ,dP'8I                                                                                        
-;                                   ,8"  8I                  ,8"  8I                                                                                        
-;                                   I8   8I                  I8   8I                                                                                        
-;                                   `8, ,8I                  `8, ,8I                                                                                        
-;                                    `Y8P"                    `Y8P"                                                                                         
+;  ,ggg, ,ggg,_,ggg,                                          ,gg,                                                                                             
+; dP""Y8dP""Y88P""Y8b                                        i8""8i                                                               I8                           
+; Yb, `88'  `88'  `88                                        `8,,8'                                                               I8                           
+;  `"  88    88    88                                         `Y88aaad8                                                        88888888                        
+;      88    88    88                                          d8""""Y8,                                                          I8                           
+;      88    88    88    ,gggg,gg     ,gggg,   ,ggg,          ,8P     8b  ,ggg,    ,ggg,,ggg,    ,ggg,    ,gggggg,    ,gggg,gg    I8      ,ggggg,     ,gggggg, 
+;      88    88    88   dP"  "Y8I    d8"  Yb  i8" "8i         dP      Y8 i8" "8i  ,8" "8P" "8,  i8" "8i   dP""""8I   dP"  "Y8I    I8     dP"  "Y8ggg  dP""""8I 
+;      88    88    88  i8'    ,8I   dP    dP  I8, ,8I     _ ,dP'      I8 I8, ,8I  I8   8I   8I  I8, ,8I  ,8'    8I  i8'    ,8I   ,I8,   i8'    ,8I   ,8'    8I 
+;      88    88    Y8,,d8,   ,d8b,,dP  ,adP'  `YbadP'     "888,,_____,dP `YbadP' ,dP   8I   Yb, `YbadP' ,dP     Y8,,d8,   ,d8b, ,d88b, ,d8,   ,d8'  ,dP     Y8,
+;      88    88    `Y8P"Y8888P"`Y88"   ""Y8d8888P"Y888    a8P"Y888888P" 888P"Y8888P'   8I   `Y8888P"Y8888P      `Y8P"Y8888P"`Y888P""Y88P"Y8888P"    8P      `Y8
+;                                       ,d8I'                                                                                                                  
+;                                     ,dP'8I                                                                                                                   
+;                                    ,8"  8I                                                                                                                   
+;                                    I8   8I                                                                                                                   
+;                                    `8, ,8I                                                                                                                   
+;                                     `Y8P"                                                                                                                                                                                                                                                  I8                           
 ; -------------------------------------------------------------------------------------------------------------
 IDEAL
 MODEL small
 STACK 100h
 DATASEG
-
 
 
 ;--------file--------
@@ -234,7 +234,7 @@ mov bx, [filehandle]
 int 21h
 ret
 endp CloseFile
-;--------------------------------
+;-------------------------------
 ; use: print BMP file on the screen 
 ; Input: file name(+4)
 ; Output: None
@@ -376,19 +376,20 @@ endp drawBoard
 
 ;--------------------------------
 ; use: change the graphics mode 
-; input: start_pointer(+26), bg_pointer(+24), graphics_pointer(+22), 
-;       libraryS(+20), libraryB(+18), libraryG(+16), 
-;       spaceS(+14), spaceB(+12), spaceG(+10), templeS(+8), templeB(+6), templeG(+4)
+; input: start_pointer(+10), bg_pointer(+8), graphics_pointer(+6), offset offset_list(+4)
 ; output: None
 proc graphics
 push bp 
 mov bp, sp
 push ax 
 push bx 
+push si
 
-    mov bx, [bp + 22]
+    mov bx, [bp + 6]
     push [bx]
     call printBMP
+
+    mov si, [bp + 4]
 
     input_analyze:
      ; Wait for key press
@@ -407,57 +408,58 @@ push bx
     ;------update graphics pointers--------
     library:
     ; start
-    mov bx, [bp + 26]   
-    mov ax, [bp + 20]
+    mov bx, [bp + 10]   
+    mov ax, [si]
     mov [word ptr bx],        ax
     ; algorithem background 
-    mov bx, [bp + 24]
-    mov ax, [bp + 18]
+    mov bx, [bp + 8]
+    mov ax, [si + 2]
     mov [word ptr bx],        ax  
     ; graphic 
-    mov bx, [bp + 22]
-    mov ax, [bp + 16]
+    mov bx, [bp + 6]
+    mov ax, [si + 4]
     mov [word ptr bx],        ax
     jmp end1 
     
     space:
     ; start
-    mov bx, [bp + 26]   
-    mov ax, [bp + 14]
+    mov bx, [bp + 10]   
+    mov ax, [si + 6]
     mov [word ptr bx],        ax
     ; algorithem background 
-    mov bx, [bp + 24]
-    mov ax, [bp + 12]
+    mov bx, [bp + 8]
+    mov ax, [si + 8]
     mov [word ptr bx],        ax  
     ; graphic 
-    mov bx, [bp + 22]
-    mov ax, [bp + 10]
+    mov bx, [bp + 6]
+    mov ax, [si + 10]
     mov [word ptr bx],        ax
     jmp end1 
 
     temple:
     ; start
-    mov bx, [bp + 26]   
-    mov ax, [bp + 8]
+    mov bx, [bp + 10]   
+    mov ax, [si + 12]
     mov [word ptr bx],        ax
     ; algorithem background 
-    mov bx, [bp + 24]
-    mov ax, [bp + 6]
+    mov bx, [bp + 8]
+    mov ax, [si + 14]
     mov [word ptr bx],        ax  
     ; graphic 
-    mov bx, [bp + 22]
-    mov ax, [bp + 4]
+    mov bx, [bp + 6]
+    mov ax, [si + 16]
     mov [word ptr bx],        ax
     jmp end1 
     ;--------------------------------------
  
 
     end1:
+pop si
 pop bx 
 pop ax 
 pop bp 
 ;-------------
-ret 24
+ret 8
 endp graphics
 ;--------------------------------
 ;----------------delay----------------
@@ -577,6 +579,59 @@ endp drawX
 ;                                                         `Y8P"            
 
 ;__________________________________________________________Logic__________________________________________________________________
+
+; ,gggggggggggg,                                   
+; dP"""88""""""Y8b,                I8               
+; Yb,  88       `8b,               I8               
+;  `"  88        `8b            88888888            
+;      88         Y8               I8               
+;      88         d8   ,gggg,gg    I8      ,gggg,gg 
+;      88        ,8P  dP"  "Y8I    I8     dP"  "Y8I 
+;      88       ,8P' i8'    ,8I   ,I8,   i8'    ,8I 
+;      88______,dP' ,d8,   ,d8b, ,d88b, ,d8,   ,d8b,
+;     888888888P"   P"Y8888P"`Y888P""Y88P"Y8888P"`Y8
+;-----------------------------------------------
+; Use: finds all file names offsets
+; Input: offset_list(+6), first offset libraryS(+4)
+; Output:None - update a list of offsets of the file names 
+proc fileOffsets
+push bp 
+mov bp, sp 
+push bx
+push ax 
+push cx
+push si
+    
+    mov bx, [bp + 4] ; offset libraryS
+    mov si, [bp + 6] ; offset_list
+    ; Update first offset
+    mov [si], bx
+    ; nine pictures
+    mov ax, si
+    add si, 2
+    ; this is the end of the list
+    add ax, 9*2 
+    offset_loop:
+    ; if there is null it is the end string
+        cmp [byte ptr bx], 0 
+        jne notEndString
+            ; the next byte is going to be the start of the next string
+            inc bx 
+            ; save the string offset and update si to point to the next cell
+            mov [si], bx 
+            add si, 2
+        notEndString:
+        inc bx 
+    cmp ax, si
+    jne offset_loop
+
+pop si
+pop cx
+pop ax 
+pop bx 
+pop bp 
+ret 4
+endp fileOffsets
 
 ;  ,ggggggggggggggg                              ,gg,                                            
 ; dP""""""88""""""" ,dPYb,                      i8""8i     I8                          ,dPYb,    
@@ -1318,7 +1373,8 @@ P_STACK_POINTER equ [bp + 6]
 P_CURRENT_CELL equ [bp + 4] 
 ;-----------------------------------------------
 ; Use: carve the maze useing functions 
-; Input: offset Xn(+14), offset stackC(+12), offset board(+10), offset neighbors_list(+8), offset stack_pointer(+6), offset current_cell(+4)
+; Input: offset Xn(+14), offset stackC(+12), offset board(+10), offset neighbors_list(+8), 
+;        offset stack_pointer(+6), offset current_cell(+4)
 ; Output: None 
 proc carveMaze
 push bp
@@ -1335,15 +1391,11 @@ push si
     call boardToData
     pop ax 
 ;-----------------------------------------------
-; don't mark as visited
     push ax
-    push [maze_start] ; updata current_cell to current_cell /fp 
+    push [maze_start] 
     push si
     push P_STACK_POINTER
     call updateChoosenCell
-
-    
-
 
     ; algorithem
     carveLoop:
@@ -1536,47 +1588,32 @@ pop ax
 pop bp
 ret 16
 endp run 
-;-----------------------------------------------
-; Use: finds all file names offsets
-; Input: offset_list(+6), first offset libraryS(+4)
-; Output:None - update a list of offsets of the file names 
-proc fileOffsets
-push bp 
-mov bp, sp 
-push bx
-push ax 
-push cx
-push si
-    
-    mov bx, [bp + 4] ; offset
-    mov si, [bp + 6] ; offset
-    ; Update first offset
-    mov [si], offset libraryS
-    ; nine pictures
-    mov ax, si
-    ; this is the end of the list
-    add ax, 9*2 
-    offset_loop:
-    ; if there is null it is the end string
-        cmp [bx], 0
-        jne notEndString
-            ; the next byte is going to be the start of the next string
-            inc bx 
-            ; save the string offset and update si to point to the next cell
-            mov [si], bx 
-            add si, 2
-        notEndString:
-        inc bx 
-    cmp ax, si
-    jne offset_loop
 
-pop si
-pop cx
-pop ax 
-pop bx 
-pop bp 
-ret 4
-endp fileOffsets
+
+
+
+
+
+
+
+
+
+;       ,gg,                                                            ,gg,                                                                      
+;      i8""8i                                            I8            i8""8i              I8      I8                                             
+;      `8,,8'                                            I8            `8,,8'              I8      I8                                             
+;       `88'                                          88888888          `88'            8888888888888888  gg                                      
+;       dP"8,                                            I8             dP"8,              I8      I8     ""                                      
+;      dP' `8a   ,ggg,     ,gggg,   ,gggggg,   ,ggg,     I8            dP' `8a   ,ggg,     I8      I8     gg    ,ggg,,ggg,     ,gggg,gg    ,g,    
+;     dP'   `Yb i8" "8i   dP"  "Yb  dP""""8I  i8" "8i    I8           dP'   `Yb i8" "8i    I8      I8     88   ,8" "8P" "8,   dP"  "Y8I   ,8'8,   
+; _ ,dP'     I8 I8, ,8I  i8'       ,8'    8I  I8, ,8I   ,I8,      _ ,dP'     I8 I8, ,8I   ,I8,    ,I8,    88   I8   8I   8I  i8'    ,8I  ,8'  Yb  
+; "888,,____,dP `YbadP' ,d8,_    _,dP     Y8, `YbadP'  ,d88b,     "888,,____,dP `YbadP'  ,d88b,  ,d88b, _,88,_,dP   8I   Yb,,d8,   ,d8I ,8'_   8) 
+; a8P"Y88888P" 888P"Y888P""Y8888PP8P      `Y8888P"Y88888P""Y88    a8P"Y88888P" 888P"Y88888P""Y8888P""Y888P""Y88P'   8I   `Y8P"Y8888P"888P' "YY8P8P
+;                                                                                                                                  ,d8I'          
+;                                                                                                                                ,dP'8I           
+;                                                                                                                               ,8"  8I           
+;                                                                                                                               I8   8I           
+;                                                                                                                               `8, ,8I           
+;                                                                                                                                `Y8P"            
 
 ; Use: give the user the option of choosing the end and the start of the maze
 ; Input: offset maze_start(+6), offset maze_end(+4)
@@ -1586,6 +1623,7 @@ push bp
 mov bp, sp
 push bx
 push ax
+push cx
 
     secretLoop:
 
@@ -1605,15 +1643,18 @@ push ax
         
         start_point:
             mov bx, [bp + 6] ; offset maze_start
+            ;mov cx, green
         jmp visualizeInput
 
 
         end_point:
             mov bx, [bp + 4] ; offset maze_end
+            ;mov cx, red
         jmp visualizeInput
 
         visualizeInput:
             push bx ; the offset of the varible to change 
+            push cx ; the color of the block to move 
             call chooseCell
             ; after the player choose his start\end point
         jmp secretLoop
@@ -1621,6 +1662,7 @@ push ax
     end_setting:
 
 
+pop cx
 pop ax
 pop bx
 pop bp 
@@ -1647,10 +1689,10 @@ visaul_movement:
             cmp al, 's'
             je down
             cmp al, 'a'
-            je left
+            ;je left
             cmp al, 'd'
-            je right
-            cmp al, 'enter' ; TODO change enter to assci for enter
+            ;je right
+            cmp al, 5Ah ; Enter
             je pressEnter
         jmp stepInput
 
@@ -1659,27 +1701,30 @@ visaul_movement:
             ; if not - return the update var, and print visualize movement
             push 20
             call updateMovement 
-            pop [step]
+            ;pop [step]
             jmp visaul_movement
 
             down:
             push -20
             call updateMovement 
-            pop [step]
+            ;pop [step]
             jmp visaul_movement
 
 
-            left:
+            ;left:
             push -1
             call updateMovement 
-            pop [step]
+            ;pop [step]
             jmp visaul_movement
             
-            right:
+            ;right:
             push 1
             call updateMovement 
-            pop [step]
+            ;pop [step]
             jmp visaul_movement
+
+            pressEnter:
+            ; TODO: create stop the movement and go back to secret setting
 
 
 
@@ -1720,11 +1765,11 @@ push cx
 	je touch 
 
     ;return 0 - didn't touch
-    mov [bp + 4], 0
+    ;mov [bp + 4], 0 BUG
 	jmp not_touch
 	touch:
 	; return 1 - did touch
-    mov [bp + 4], 1
+;    mov [bp + 4], 1 DUG:
 	not_touch:
 
 pop cx
@@ -1742,28 +1787,30 @@ proc updateMovement
 push bp
 mov bp, sp 
 ; TODO finish this function
-push current_place + movement
+;push current_place + movement
 call touch_edges
 pop ax ; 1 - invalid ,0 - valid
 cmp ax, 1 
 je invalidMove
 
+    ; need to delete the last block first
+
     ; TODO print the movement 
     ;draw block
-    push palce
+    ;push palce
     call indexToPlace
-    pop place in screen
+    ;pop place in screen
 
     push 8
     push 8
-    push color 
-    push place in screen
+    ;push color 
+    ;push place in screen
     call drawCell
-    return current_place + movement
+    ;return current_place + movement
 
 jmp validMove
 invalidMove:
-    return current_place 
+    ;return current_place 
 validMove:
 
 pop bp 
@@ -1799,8 +1846,8 @@ int 10h
 
 ; Main:
 
-push offset libraryS
 push offset offset_list
+push offset libraryS
 call fileOffsets
 
 
@@ -1811,39 +1858,9 @@ call randomSeed
 pop [Xn]
 
 
-; Pointers:
-mov bx, offset start_pointer
-mov si, offset bg_pointer 
-mov cx, offset graphics_pointer
-mov di, offset libraryS
-mov dx,  offset libraryB
-
-
-jmp startMenu
-    graphics_options:
-    ;-----input------
-        push bx
-        push si
-        push cx
-        push di
-        push dx
-        push offset libraryG
-        push offset spaceS
-        push offset spaceB
-        push offset spaceG
-        push offset templeS
-        push offset templeB
-        push offset templeG
-    ;-------------
-    call graphics 
-    jmp startMenu
-
- 
 startMenu:
-push [offset_list]
+push [start_pointer]
 call printBMP
-
-
 
 inputloop:
     ;-----------------
@@ -1860,17 +1877,28 @@ inputloop:
     jmp inputloop 
     ;-----------------
 
+    graphics_options:
+    ;-----input------
+        push offset start_pointer
+        push offset bg_pointer 
+        push offset graphics_pointer
+        push offset offset_list
+    ;-------------
+    call graphics 
+    jmp startMenu
 
     start_run:  
+    ;-----input------
         push offset current_cell
         push offset stack_pointer 
         push offset neighbors_list
         push offset board
         push offset stackC
         push offset Xn
-        push si
+        push offset bg_pointer 
         push [gray]
-        call run
+    ;-------------
+    call run
     jmp startMenu
 
 ;-------------------------------
