@@ -69,11 +69,8 @@ CODESEG
 
 ; Consts colors
 GREEN equ 2
-LIGHT_GREEN equ 0ah
-LIGHT_RED equ 0ch
 WHITE equ 0fh
 RED equ 4
-YELLOW equ 0eh
 GRAY equ 7
 
 
@@ -522,13 +519,6 @@ ret     ; retrun the ip in order to
 endp delay
 ;------------------------------------
 
-;--------------------------------
-; use: print the start menu and look for input 
-; input: gray(+28), start_pointer(+26), bg_pointer(+24), graphics_pointer(+22), 
-;       libraryS(+20), libraryB(+18), libraryG(+16), 
-;       spaceS(+14), spaceB(+12), spaceG(+10), templeS(+8), templeB(+6), templeG(+4)
-; Output: None
-;--------------------------------
 
 ;--------------------------------
 ; Use: draw up and down cells with connection 
