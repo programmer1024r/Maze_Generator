@@ -30,7 +30,7 @@ ScrLine db 320 dup (0)
 ErrorMsg db 'Error', 13, 10,'$'
 ;-------------------
 ;-------images------
-secret db 'secret_settings.bmp', 0
+secret db 'ss.bmp', 0
 libraryS db 's1.bmp',0
 libraryB db 'bg1.bmp',0
 libraryG db 'sg1.bmp',0 
@@ -41,13 +41,6 @@ templeS db 's3.bmp',0
 templeB db 'bg3.bmp',0
 templeG db 'sg3.bmp',0
 ;-------------------
-;------colors------
-gray dw 7
-white dw 0fh
-green dw 2 
-red dw 4 
-yellow dw 0eh
-;-----------------
 ;------flags------
 is_maze dw 0
 ;----------------- 
@@ -56,12 +49,13 @@ start_pointer dw offset templeS
 bg_pointer dw offset templeB
 graphics_pointer dw offset templeG 
 stack_pointer dw offset stackC 
-offset_list dw 9 dup (0)  ; mabey add more for your comfort 
+graphics_args dw 9 dup (0), offset start_pointer, offset bg_pointer, offset graphics_pointer
+
+run_args dw offset bg_pointer,offset Xn, offset stackC, offset board, offset neighbors_list, offset stack_pointer,  offset current_cell, offset maze_end, offset maze_start, offset is_maze, offset secret, offset maze_start, offset maze_end
 ;-----------------
 ;-------variables------
-maze_start dw 210   ; works
-maze_end dw 52
-maze_layers db 10
+maze_start dw 0   ; works
+maze_end dw 399
 current_cell dw  0 ;0-399 ; previews cell
 Xn dw 0
 ;----------------------
@@ -73,7 +67,14 @@ board dw 800 dup (0)
 ;--------------------------
 CODESEG
 
-
+; Consts colors
+GREEN equ 2
+LIGHT_GREEN equ 0ah
+LIGHT_RED equ 0ch
+WHITE equ 0fh
+RED equ 4
+YELLOW equ 0eh
+GRAY equ 7
 
 
 
@@ -293,10 +294,39 @@ endp printBMP
 ;     `8, ,8I                         I8                                              
 ;      `Y8P"                          I8                                              
 ;____________________________________________________________Graphics____________________________________________________________
+
+; Use draw current position of the start/end block
+; Input: color(+6), position to draw(+4)
 ;--------------------------------
+proc drawCurrentPos
+push bp
+mov bp, sp
+push di
+push ax
+
+        mov di, [bp + 4] ; pos 
+
+        push di
+        call indexToPlace 
+        pop di  ; place 
+
+        push 8  ; input: width, height, color, place 
+        push 8
+        push [bp + 6]
+        push di
+        call drawCell
+
+pop ax
+pop di
+pop bp 
+ret 4
+endp drawCurrentPos
+;--------------------------------
+
 ; Use: print a width and height cell
 ; Input: width(+10), height(+8),  color(+6), place(+4) 
 ; Output: None  
+;--------------------------------
 proc drawCell
 push bp 
 mov bp, sp 
@@ -376,7 +406,11 @@ endp drawBoard
 
 ;--------------------------------
 ; use: change the graphics mode 
-; input: start_pointer(+10), bg_pointer(+8), graphics_pointer(+6), offset offset_list(+4)
+; input:  offset graphics_args(+4)
+; graphics_args values:
+; offset_list(0-16), offset start_pointer(+18), offset bg_pointer(+20), offset graphics_pointer(+22) 
+; offset_list values:
+; libraryS libraryB libraryG spaceS spaceB spaceG templeS templeB templeG
 ; output: None
 proc graphics
 push bp 
@@ -385,11 +419,12 @@ push ax
 push bx 
 push si
 
-    mov bx, [bp + 6]
+    mov si, [bp + 4]
+
+    mov bx, [si + 22]
     push [bx]
     call printBMP
 
-    mov si, [bp + 4]
 
     input_analyze:
      ; Wait for key press
@@ -408,45 +443,45 @@ push si
     ;------update graphics pointers--------
     library:
     ; start
-    mov bx, [bp + 10]   
+    mov bx, [si + 18]   
     mov ax, [si]
     mov [word ptr bx],        ax
     ; algorithem background 
-    mov bx, [bp + 8]
+    mov bx, [si + 20]
     mov ax, [si + 2]
     mov [word ptr bx],        ax  
     ; graphic 
-    mov bx, [bp + 6]
+    mov bx, [si + 22]
     mov ax, [si + 4]
     mov [word ptr bx],        ax
     jmp end1 
     
     space:
     ; start
-    mov bx, [bp + 10]   
+    mov bx, [si + 18]   
     mov ax, [si + 6]
     mov [word ptr bx],        ax
     ; algorithem background 
-    mov bx, [bp + 8]
+    mov bx, [si + 20]
     mov ax, [si + 8]
     mov [word ptr bx],        ax  
     ; graphic 
-    mov bx, [bp + 6]
+    mov bx, [si + 22]
     mov ax, [si + 10]
     mov [word ptr bx],        ax
     jmp end1 
 
     temple:
     ; start
-    mov bx, [bp + 10]   
+    mov bx, [si + 18]   
     mov ax, [si + 12]
     mov [word ptr bx],        ax
     ; algorithem background 
-    mov bx, [bp + 8]
+    mov bx, [si + 20]
     mov ax, [si + 14]
     mov [word ptr bx],        ax  
     ; graphic 
-    mov bx, [bp + 6]
+    mov bx, [si + 22]
     mov ax, [si + 16]
     mov [word ptr bx],        ax
     jmp end1 
@@ -468,7 +503,7 @@ endp graphics
 proc delay
 push cx	
 	
-		mov cx, 0ffffh  
+		mov cx, 0fffh  
 	;-------------------------------- 
 	out_loop:
 		push cx
@@ -1227,7 +1262,7 @@ endp updateChoosenCell
 ; a8P"Y88888P" P"Y8888P"    8P'"Y888P'"Y88P"`Y888P""Y888P""Y8P"Y8888P"    8P'   8I   `Y8
 ;-----------------------------------------------
 ; Use: show the maze solution
-; Input: offset board(+6), choosen cell to sovle(+4) 
+; Input: is_maze(+10), maze_start(+8), maze_end(+6), offset board(+4)
 ; Output: None
 proc solution
 push bp 
@@ -1235,41 +1270,34 @@ mov bp, sp
 push bx 
 push di 
 
-    mov di, [maze_end]
-    cmp [is_maze], 1
+    mov di, [bp + 6]
+    cmp [word ptr bp + 10], 1
     jne no_maze
 
         ; di = 0 - 399
 
-        push [bp + 6]
+        push [bp + 4]
         push di 
         call boardToData
-        pop bx
+        pop bx ; the end of the maze link list
 
-        ; bx = data index 
+        ; bx = data index  
         mov di, [bx + 2] ; bx = previous cell 0 - 399
+        ; if the end and start cell are side by side
+        cmp di, [bp + 8]
+        je no_maze
 
     pervious:
         call delay
      
         ;-------------draw-----------
-        push di 
-        ;------
-        push di 
-        call indexToPlace 
-        pop di  ; place 
-
-        push 8  ; input: width, height, color, place 
-        push 8
-        push 10  ; light green 
+        push LIGHT_GREEN
         push di
-        call drawCell
-        ;------
-        pop di 
+        call drawCurrentPos
         ;---------------------------
         ; di = 0 - 399
 
-        push [bp + 6]
+        push [bp + 4]
         push di 
         call boardToData
         pop bx
@@ -1277,7 +1305,7 @@ push di
         ; bx = data index 
         mov di, [bx + 2] ; bx = previous cell 0 - 399
 
-        cmp di, [maze_start]       ; start cell the previous cell is 0 
+        cmp di, [bp + 8]       ; start cell the previous cell is 0 
     jne pervious; need condition 
 
     no_maze:
@@ -1286,7 +1314,7 @@ push di
 pop di 
 pop bx
 pop bp 
-ret 4
+ret 8
 endp solution
 ;-----------------------------------------------
 
@@ -1307,7 +1335,7 @@ endp solution
 
 ;-----------------------------------------------
 ; Use: reset the board graphics and data plus reset the algorithem variables 
-; Input: bg_pointer(+8), p_current_cell(+6), p_board(+4) 
+; Input: is_maze(+14), maze_start(+12), maze_end(+10), bg_pointer(+8), p_current_cell(+6), p_board(+4) 
 ; Output: None 
 proc resetMaze
 push bp 
@@ -1315,9 +1343,10 @@ mov bp, sp
 push ax
 push bx 
 push cx 
+push si
 
-
-    mov [is_maze], 0
+    mov si, [bp + 14]
+    mov [word ptr si], 0
     ;----------Reset Graphics-------- 
     push [bp + 8]
     call printBMP
@@ -1326,6 +1355,14 @@ push cx
     push 7
     push 381
     call  drawBoard
+
+
+    push GREEN
+    push [bp + 10]
+    call drawCurrentPos
+    push RED
+    push [bp + 12]
+    call drawCurrentPos
     ;--------------------------------
 
     ;----------Reset Data--------     
@@ -1336,15 +1373,18 @@ push cx
         add bx, 2
     loop resetBoard
     ;----------------------------
+    mov si, [bp + 12] 
+    mov ax, [si]
     ; reset current cell 
     mov bx, [bp + 6]
-    mov [word ptr bx], 0
+    mov [word ptr bx], ax
 
+pop si
 pop cx 
 pop bx 
 pop ax
 pop bp 
-ret 6 
+ret 12 
 endp resetMaze
 ;--------------------------------
 
@@ -1373,7 +1413,7 @@ P_STACK_POINTER equ [bp + 6]
 P_CURRENT_CELL equ [bp + 4] 
 ;-----------------------------------------------
 ; Use: carve the maze useing functions 
-; Input: offset Xn(+14), offset stackC(+12), offset board(+10), offset neighbors_list(+8), 
+; Input: offset maze_start(+16), offset Xn(+14), offset stackC(+12), offset board(+10), offset neighbors_list(+8), 
 ;        offset stack_pointer(+6), offset current_cell(+4)
 ; Output: None 
 proc carveMaze
@@ -1387,19 +1427,21 @@ push si
 ;-----------------------------------------------
     mov si, P_CURRENT_CELL      ; si = current cell pointer
     push P_BOARD
-    push [maze_start] ; add input
+    mov bx, [bp + 16]
+    push [bx] 
     call boardToData
     pop ax 
 ;-----------------------------------------------
     push ax
-    push [maze_start] 
+    mov bx, [bp + 16]
+    push [bx] 
     push si
     push P_STACK_POINTER
     call updateChoosenCell
 
     ; algorithem
     carveLoop:
-         ;call delay 
+         call delay 
 
         ;-------create neighbors list-------
         push P_NEIGHBORS_LIST
@@ -1478,57 +1520,63 @@ push si
         mov dx, P_STACKC
         cmp [bx], dx
     jne carveLoop
-    
-
-    push [maze_start] 
-    call indexToPlace
-    pop ax
-    
-    push 8
-    push 8
-    push 4 ; red
-    push ax
-    call drawCell
-
-    push [maze_end] 
-    call indexToPlace
-    pop ax
-    
-    push 8
-    push 8
-    push 2 ; red
-    push ax
-    call drawCell
-
-    mov [is_maze], 1
-    
 pop si
 pop dx 
 pop bx 
 pop ax 
 pop bp 
-ret 12
+ret 14
 endp carveMaze
 ;-----------------------------------------------
+; Use: print and update varibles for end of craving the maze
+; Input: maze_end(+8), maze_start(+6), offset is_maze(+4)
+proc endCrave
+push bp
+mov bp, sp
+push bx
+
+            push RED
+            mov bx, [bp + 6]
+            push [bx]
+            call drawCurrentPos
+
+            push GREEN
+            mov bx, [bp + 8]
+            push [bx] 
+            call drawCurrentPos
+
+            mov bx, [bp + 4]
+            mov [bx], 1
+pop bx
+pop bp 
+ret 6
+endp endCrave
 ;-----------------------------------------------
 ; Use: run all the function of the algorithm 
-; Input: offset current_cell(+18)B, offset stack_pointer(+16)B, offset neighbors_list(+14)B,
-; offset board(+12)B, offset stackC(+10)B, offset Xn(+8)B, offset bg_pointer(+6) , gray(+4)
+; Input: offset run_args (+4)
+; run_args values:
+;     offset is_maze(+18), offset maze_start(+16), offset maze_end(+14), offset current_cell(+12)B, offset stack_pointer(+10)B, offset neighbors_list(+8),
+;     offset board(+6)B, offset stackC(+4)B, offset Xn(+2)B, offset bg_pointer(+0) 
 ; Output: None
 proc run 
 push bp 
 mov bp, sp
 push ax 
 push bx 
-    ;----------Set Graphics---------
-        mov bx, [bp + 6] 
-        push [bx]
-        call printBMP
+push si
 
-        mov bx, [bp + 6]
+    mov si, [bp + 4] ; the head of the args
+    set_graphics:
+    ;----------Set Graphics---------
+        push [si + 18]
+        mov bx, [si + 16]
+        push [bx]
+        mov bx, [si + 14]
+        push [bx]
+        mov bx, [si]
         push [bx] 
-        push [bp + 18]
-        push [bp + 12]
+        push [si + 12]
+        push [si + 6]
         call resetMaze
     ;-------------------------------
 
@@ -1553,40 +1601,63 @@ push bx
         ;---------------
 
         create_maze:
-            push [bp + 8]
-            push [bp + 10]
-            push [bp + 12]
-            push [bp + 14]
-            push [bp + 16]
-            push [bp + 18] ;; look at here
+            push [si + 16]
+            push [si + 2]
+            push [si + 4]
+            push [si + 6]
+            push [si + 8]
+            push [si + 10]
+            push [si + 12] ;; look at here
             call carveMaze  ; buged 
+            push [si + 14]
+            push [si + 16]
+            push [si + 18]
+            call endCrave
+
         jmp optionLoop
 
         reset_maze:
-            mov bx, [bp + 6]
+            push [si + 18]
+            mov bx, [si + 16]
+            push [bx]
+            mov bx, [si + 14]
+            push [bx]
+            mov bx, [si]
             push [bx] 
-            push [bp + 18]
-            push [bp + 12]
+            push [si + 12]
+            push [si + 6]
             call resetMaze
         jmp optionLoop
 
         solve_maze:
-            push [bp + 12]
-            push 0 ; cell to start solving 
+            mov bx, [si + 18]
+            push [bx]
+            mov bx, [si + 16]
+            push [bx]
+            mov bx, [si + 14]
+            push [bx]
+            push [si + 6]
             call solution
         jmp optionLoop
 
         secret_settings:
-            ;push
-            ;call secretSettings
-        jmp optionLoop
+            push [si + 18]
+            push [si]
+            push [si + 12]
+            push [si + 6]
+            push offset secret ; TODO 
+            push [si + 16]
+            push [si + 14]
+            call secretSettings
+        jmp set_graphics
     ;-------------------------------
 end_run:
 
+pop si
 pop bx 
 pop ax 
 pop bp
-ret 16
+ret 2
 endp run 
 
 
@@ -1616,7 +1687,7 @@ endp run
 ;                                                                                                                                `Y8P"            
 
 ; Use: give the user the option of choosing the end and the start of the maze
-; Input: offset maze_start(+6), offset maze_end(+4)
+; Input: is_maze(+16), bg_pointer(+14), p_current_cell(+12), p_board(+10)  offset secret(+8), offset maze_start(+6), offset maze_end(+4)
 ; Output: None
 proc secretSettings
 push bp
@@ -1624,8 +1695,15 @@ mov bp, sp
 push bx
 push ax
 push cx
+push si
+push dx
+push di
+
 
     secretLoop:
+    ; print backgroud
+    push [bp + 8] 
+    call printBMP
 
     inputSecret:
         ; Wait for key press
@@ -1642,41 +1720,74 @@ push cx
         jmp inputSecret
         
         start_point:
-            mov bx, [bp + 6] ; offset maze_start
-            ;mov cx, green
+            mov bx, [bp + 6] ;offset maze_start 
+            mov cx, RED
+
+            mov dx, GREEN
+            mov di, [bp + 4]
         jmp visualizeInput
 
 
         end_point:
-            mov bx, [bp + 4] ; offset maze_end
-            ;mov cx, red
+            mov bx,  [bp + 4] ; offset maze_end
+            mov cx, GREEN
+
+            mov dx, RED
+            mov di, [bp + 6]
         jmp visualizeInput
 
         visualizeInput:
-            push bx ; the offset of the varible to change 
+            ;-------reset_board------  
+            ; bg_pointer, p_current_cell, p_board 
+            push [bp + 16]
+            mov si, [bp + 6]
+            push [si]
+            mov si, [bp + 4]
+            push [si]
+            mov si, [bp + 14]
+            push [si] 
+            push [bp + 12]
+            push [bp + 10]
+            call resetMaze
+
+            ;-------starts_move_cell--------
             push cx ; the color of the block to move 
+            push bx ; the offset of the varible to change 
+            push di ; the offset pos that need to stay 
             call chooseCell
             ; after the player choose his start\end point
         jmp secretLoop
 
     end_setting:
 
-
+pop di
+pop dx
+pop si
 pop cx
 pop ax
 pop bx
 pop bp 
-ret 4
+ret 14
 endp secretSettings
 
 ; Use: print the player choosen cell of a end\start point
-; Input: offset of point to choose
+; Input: color(+8), point offset(+6), still point offset(+4)
 ; Output: None
 proc chooseCell
 push bp
 mov bp, sp 
-; Graphical change of a var
-; if enter then end
+push ax
+push bx 
+push si ; change the chosen position and keep tarck of the position
+push di ; draw the chosen block
+push cx
+
+        mov si, [bp + 6] ; pos 
+        mov di, [bp + 8] ; color
+
+
+        add di, 8 ; convert to the lighter form of the color - visual effect 
+
 visaul_movement:
 
     stepInput:
@@ -1685,61 +1796,103 @@ visaul_movement:
         int 16h
         ;---------------
             cmp al, 'w'
-            je up
+            je up_m
             cmp al, 's'
-            je down
+            je down_m
             cmp al, 'a'
-            ;je left
+            je left_m
             cmp al, 'd'
-            ;je right
-            cmp al, 5Ah ; Enter
+            je right_m
+            cmp al, 13 ; Enter
             je pressEnter
         jmp stepInput
 
-            up:
-            ;TODO create a function that check: if touch_edges return the same var
-            ; if not - return the update var, and print visualize movement
-            push 20
-            call updateMovement 
-            ;pop [step]
-            jmp visaul_movement
+            up_m:
+                mov cx, -20
+            jmp move
 
-            down:
-            push -20
-            call updateMovement 
-            ;pop [step]
-            jmp visaul_movement
+            down_m:
+                mov cx, 20
+            jmp move
 
-
-            ;left:
-            push -1
-            call updateMovement 
-            ;pop [step]
-            jmp visaul_movement
+            left_m:
+                mov cx, -1
+            jmp move
             
-            ;right:
-            push 1
-            call updateMovement 
-            ;pop [step]
+            right_m:
+                mov cx, 1
+            jmp move
+
+            move:
+                push [bp + 4] ; still point
+                push di
+                push [si]
+                push cx
+                call updateMovement 
+                pop [si]
             jmp visaul_movement
-
-            pressEnter:
-            ; TODO: create stop the movement and go back to secret setting
-
-
-
+    pressEnter:
     
-jmp visaul_movement
-
+pop cx
+pop di
+pop si
+pop bx
+pop ax
 pop bp 
-ret 
+ret 6
 endp chooseCell
 
+; Use: update movement -  check if touch_edges return the same var
+;            if not - return the update var, and print visualize movement
+; Input: still point(+10), color(+8), current pos(+6), the choosen movement(20/-20/1/-1)(+4)
+; Output: the updated movement
+proc updateMovement
+push bp
+mov bp, sp 
+push ax
+push bx
+push si
+
+    mov si, [bp + 6] ; current pos 
+    mov bx, si
+    add bx, [bp + 4] ; next pos
+
+    push [bp + 4]
+    push [bp + 10]
+    push bx
+    call touch_edges
+    pop ax ; 1 - invalid ,0 - valid
+    cmp ax, 1 
+    je invalidMove
+            ; delete last pos
+            push GRAY
+            push si
+            call drawCurrentPos
+            
+
+            ; print new pos 
+            push [bp + 8] ; color
+            push bx
+            call drawCurrentPos
+
+            mov [bp + 10], bx ; return updated move
+
+
+    jmp validMove
+    invalidMove:
+        mov [bp + 10], si ; return updated move
+    validMove:
+
+pop si
+pop bx
+pop ax
+pop bp 
+ret 6
+endp updateMovement
 ; Use: check if the user touch the edges |1 - he touched |0 - he didn't touch|
-; Input: the next move of the user(0-399)(+4) 
+; Input: dir(+8), still point(+6), the next move of the user(0-399)(+4) 
 ; Output: 1 - touched
 ;         0 - didn't touched
-; BUG debug this code 
 proc touch_edges
 push bp 
 mov bp, sp 
@@ -1750,27 +1903,41 @@ push cx
 	mov ax, [bp + 4]	; first list of positions value 
 	mov cl, 20  
 	;------------------------
+
+    
+    mov bx, [bp + 6] 
+    ; still point
+    cmp ax, [bx]
+    je touch
 	; Up
 	cmp ax, 0
 	jl touch 
 	; Down
 	cmp ax, 399 
 	ja touch 
-	; Left
 	div cl
-	cmp ah, 0
-	je touch 
-	;Right
-	cmp ah, 19
-	je touch 
 
-    ;return 0 - didn't touch
-    ;mov [bp + 4], 0 BUG
+    ; check in which direction the user went - left/ right because the cmp doesn't work properly without this check 
+    ; 19 - is vaild in the left but not in right the same to 0
+    cmp [bp + 8], 1
+    jne not_left1
+        cmp ah, 0
+        je touch 
+    not_left1:
+
+    cmp [bp + 8], -1
+    jne not_right1
+        cmp ah, 19
+        je touch 
+    not_right1:
+
+    ; didn't touch
+    mov [bp + 8], 0 
 	jmp not_touch
 	touch:
-	; return 1 - did touch
-;    mov [bp + 4], 1 DUG:
+    mov [bp + 8], 1 
 	not_touch:
+
 
 pop cx
 pop bx
@@ -1778,44 +1945,6 @@ pop ax
 pop bp
 ret 4
 endp touch_edges
-; Use: update movement -  check if touch_edges return the same var
-;            if not - return the update var, and print visualize movement
-
-; Input: the choosen movement(20/-20/1/-1)(+4)
-; Output: the updated movement
-proc updateMovement
-push bp
-mov bp, sp 
-; TODO finish this function
-;push current_place + movement
-call touch_edges
-pop ax ; 1 - invalid ,0 - valid
-cmp ax, 1 
-je invalidMove
-
-    ; need to delete the last block first
-
-    ; TODO print the movement 
-    ;draw block
-    ;push palce
-    call indexToPlace
-    ;pop place in screen
-
-    push 8
-    push 8
-    ;push color 
-    ;push place in screen
-    call drawCell
-    ;return current_place + movement
-
-jmp validMove
-invalidMove:
-    ;return current_place 
-validMove:
-
-pop bp 
-ret
-endp updateMovement
 
 ;________________________________________________________________________________________________________________________________
 
@@ -1843,20 +1972,14 @@ mov es, ax
 mov ax, 13h
 int 10h
 ;--------------
-
 ; Main:
-
-push offset offset_list
+push offset graphics_args
 push offset libraryS
 call fileOffsets
-
-
-
 ; Initialzing random seed from the clock 
 push ax 
 call randomSeed
 pop [Xn]
-
 
 startMenu:
 push [start_pointer]
@@ -1878,27 +2001,13 @@ inputloop:
     ;-----------------
 
     graphics_options:
-    ;-----input------
-        push offset start_pointer
-        push offset bg_pointer 
-        push offset graphics_pointer
-        push offset offset_list
-    ;-------------
-    call graphics 
+        push offset graphics_args
+        call graphics 
     jmp startMenu
 
     start_run:  
-    ;-----input------
-        push offset current_cell
-        push offset stack_pointer 
-        push offset neighbors_list
-        push offset board
-        push offset stackC
-        push offset Xn
-        push offset bg_pointer 
-        push [gray]
-    ;-------------
-    call run
+        push offset run_args
+        call run
     jmp startMenu
 
 ;-------------------------------
