@@ -72,7 +72,7 @@ GREEN equ 2
 WHITE equ 0fh
 RED equ 4
 GRAY equ 7
-
+LIGHT_GREEN equ 0ah
 
 
 
