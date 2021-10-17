@@ -23,16 +23,19 @@ A maze generator visualizing using assembly language
 1.	The Welcome Screen Should look like this
 
 	![alt text](https://github.com/programmer1024r/Maze_Generator/blob/main/Images%20for%20Instructions/welcomeScreen.jpeg?raw=true)
+
 Now you have Two options by Pressing `g` you can change the Generator graphics or you can press `r` to run the generator
 
 2. If you pressed g the you will see 
 
 	![alt text](https://github.com/programmer1024r/Maze_Generator/blob/main/Images%20for%20Instructions/GraphicsScreen.jpeg?raw=true)
+
 You can Choose `1 / 2 / 3` for different results
 
 3. If you pressed `r` you will see the running screen
 
 	![alt text](https://github.com/programmer1024r/Maze_Generator/blob/main/Images%20for%20Instructions/PlayScreen.jpeg?raw=true)
+
 Here you can run 
 	* `c` - create the maze
 	* `r` - run the maze 
