@@ -1,7 +1,7 @@
 
 
 # MazeGenerator
-A maze generator visualizing using assembly language 
+A maze generator using assembly x86, (real mode)
 
 ## How to run the Program
 1. Download the project by running the clone git command `git clone https://github.com/programmer1024r/Maze_Generator`
