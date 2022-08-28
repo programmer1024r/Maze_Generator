@@ -1,6 +1,6 @@
 
 
-# Maze_Generator
+# MazeGenerator
 A maze generator visualizing using assembly language 
 
 ## How to run the Program
